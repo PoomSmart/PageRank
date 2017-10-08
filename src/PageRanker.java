@@ -1,11 +1,16 @@
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
 
@@ -14,27 +19,27 @@ import java.util.Vector;
  *
  */
 public class PageRanker {
-	
+
 	class Node {
 		private int pid;
-		private List<Node> in;
-		private List<Node> out;
-		
+		private Set<Node> in;
+		private Set<Node> out;
+
 		public Node(int id) {
 			pid = id;
-			in = new Vector<Node>();
-			out = new Vector<Node>();
+			in = new HashSet<Node>();
+			out = new HashSet<Node>();
 		}
-		
+
 		public int getPid() {
 			return pid;
 		}
-		
-		public List<Node> getIn() {
+
+		public Set<Node> getIn() {
 			return in;
 		}
-		
-		public List<Node> getOut() {
+
+		public Set<Node> getOut() {
 			return out;
 		}
 
@@ -45,19 +50,25 @@ public class PageRanker {
 		public void addOut(Node out) {
 			this.out.add(out);
 		}
-		
+
 		public boolean isSink() {
 			return out.isEmpty();
 		}
 	}
 
 	private static final double d = 0.85;
+	private static final double log2 = Math.log(2);
 
-	private TreeMap<Integer, Node> graph;
+	private Map<Integer, Node> graph;
 	private List<Integer> S;
-	private HashMap<Integer, Double> PR;
-	private int prevUnit = -1;
-	private int iteration = 0;
+	private Map<Integer, Double> PR;
+	private int prevUnit;
+	private int iteration;
+
+	private BufferedWriter perplexityWriter;
+	private BufferedWriter scoreWriter;
+	private StringBuilder perplexityBuilder;
+	private StringBuilder scoreBuilder;
 
 	/**
 	 * This class reads the direct graph stored in the file "inputLinkFilename" into memory. Each line in the input file
@@ -88,13 +99,14 @@ public class PageRanker {
 				}
 				tokens = null;
 			}
+			System.out.println("DEBUG: Graph size = " + graph.size());
 			for (Node node : graph.values()) {
 				if (node.isSink())
 					S.add(node.pid);
 			}
 			br.close();
 		} catch (IOException e) {
-
+			e.printStackTrace();
 		}
 	}
 
@@ -115,7 +127,6 @@ public class PageRanker {
 	 */
 	public double getPerplexity() {
 		double order = 0;
-		double log2 = Math.log(2);
 		for (Integer pid : graph.keySet())
 			order += PR.get(pid) * Math.log(PR.get(pid));
 		return Math.pow(2, -order / log2);
@@ -127,11 +138,15 @@ public class PageRanker {
 	 */
 	public boolean isConverge() {
 		double perplexity = getPerplexity();
+		perplexityBuilder.append(perplexity);
+		perplexityBuilder.append("\n");
 		int unit = (int) perplexity;
-		System.out.println("P " + unit);
-		if (unit == prevUnit && ++iteration >= 4)
+		System.out.println("DEBUG: Perplexity = " + perplexity);
+		System.out.println("DEBUG: Iteration = " + iteration);
+		if (unit == prevUnit && ++iteration == 4)
 			return true;
-		iteration = 0;
+		if (unit != prevUnit)
+			iteration = 1;
 		prevUnit = unit;
 		return false;
 	}
@@ -156,26 +171,40 @@ public class PageRanker {
 	 * 
 	 */
 	public void runPageRank(String perplexityOutFilename, String prOutFilename) {
-		double sinkPR;
-		Map<Integer, Double> newPR;
+		double sinkPR, newPRVal;
+		Map<Integer, Double> newPR = new HashMap<Integer, Double>(PR.size());
 		int N = graph.size();
 		double dN = (1 - d) / N;
-		while (!isConverge()) {
+		perplexityBuilder = new StringBuilder();
+		scoreBuilder = new StringBuilder();
+		do {
 			System.out.println("DEBUG: Converging...");
 			sinkPR = 0;
 			for (Integer pid : S)
 				sinkPR += PR.get(pid);
-			newPR = new HashMap<Integer, Double>(PR);
 			for (Node p : graph.values()) {
-				newPR.put(p.pid, dN + (d * sinkPR / N));
-				for (Node q : p.getIn()) {
-					double newPRValAdd = newPR.get(p.pid) + (d * PR.get(q.pid) / q.getOut().size());
-					newPR.put(p.pid, newPRValAdd);
-				}
+				newPRVal = dN + (d * sinkPR / N);
+				for (Node q : p.getIn())
+					newPRVal += d * PR.get(q.pid) / q.getOut().size();
+				newPR.put(p.pid, newPRVal);
 			}
-			for (Integer pid : graph.keySet())
-				PR.put(pid, newPR.get(pid));
-			newPR = null;
+			PR.putAll(newPR);
+		} while (!isConverge());
+		try {
+			perplexityWriter = new BufferedWriter(new FileWriter(perplexityOutFilename));
+			perplexityWriter.write(perplexityBuilder.toString());
+			perplexityWriter.close();
+			scoreWriter = new BufferedWriter(new FileWriter(prOutFilename));
+			for (Integer p : graph.keySet()) {
+				scoreBuilder.append(p);
+				scoreBuilder.append(" ");
+				scoreBuilder.append(PR.get(p));
+				scoreBuilder.append("\n");
+			}
+			scoreWriter.write(scoreBuilder.toString());
+			scoreWriter.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -183,17 +212,15 @@ public class PageRanker {
 	 * Return the top K page IDs, whose scores are highest.
 	 */
 	public Integer[] getRankedPages(int K) {
-		Integer[] rankedPages = new Integer[graph.size()];
-		for (int i = 0; i < graph.size(); i++)
-			rankedPages[i] = i + 1;
-		Arrays.sort(rankedPages, new Comparator<Integer>() {
+		Integer[] rankedPages = new Integer[K];
+		List<Integer> pages = new Vector<Integer>(graph.keySet());
+		Collections.sort(pages, new Comparator<Integer>() {
 			@Override
 			public int compare(Integer p1, Integer p2) {
 				return (int) (PR.get(p2) - PR.get(p1));
 			}
 		});
-		rankedPages[K] = null;
-		return rankedPages;
+		return pages.subList(0, K).toArray(rankedPages);
 	}
 
 	public static void main(String args[]) {
