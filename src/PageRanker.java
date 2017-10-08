@@ -126,9 +126,9 @@ public class PageRanker {
 	 * specs.
 	 */
 	public double getPerplexity() {
-		double order = 0;
+		double pr, order = 0;
 		for (Integer pid : graph.keySet())
-			order += PR.get(pid) * Math.log(PR.get(pid)) / log2;
+			order += (pr = PR.get(pid)) * Math.log(pr) / log2;
 		return Math.pow(2, -order);
 	}
 
@@ -142,7 +142,7 @@ public class PageRanker {
 		perplexityBuilder.append("\n");
 		int unit = (int) perplexity;
 		System.out.println("DEBUG: Perplexity = " + perplexity);
-		System.out.println("DEBUG: Iteration = " + iteration);
+		// System.out.println("DEBUG: Iteration = " + iteration);
 		if (unit == prevUnit && ++iteration == 4)
 			return true;
 		if (unit != prevUnit)
@@ -171,7 +171,7 @@ public class PageRanker {
 	 * 
 	 */
 	public void runPageRank(String perplexityOutFilename, String prOutFilename) {
-		double sinkPR, newPRVal;
+		double sinkPR, newPRVal, newPRVal2, newPRVal3;
 		Map<Integer, Double> newPR = new HashMap<Integer, Double>(PR.size());
 		int N = graph.size();
 		double dN = (1 - d) / N;
@@ -182,11 +182,13 @@ public class PageRanker {
 			sinkPR = 0;
 			for (Integer pid : S)
 				sinkPR += PR.get(pid);
+			newPRVal2 = dN + (d * sinkPR / N);
 			for (Node p : graph.values()) {
-				newPRVal = dN + (d * sinkPR / N);
+				newPRVal = newPRVal2;
+				newPRVal3 = 0;
 				for (Node q : p.getIn())
-					newPRVal += d * PR.get(q.pid) / q.getOut().size();
-				newPR.put(p.pid, newPRVal);
+					newPRVal3 += PR.get(q.pid) / q.getOut().size();
+				newPR.put(p.pid, newPRVal + d * newPRVal3);
 			}
 			PR.putAll(newPR);
 		} while (!isConverge());
