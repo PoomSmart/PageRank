@@ -83,7 +83,6 @@ public class PageRanker {
 			String line;
 			Integer pid;
 			graph = new TreeMap<Integer, Node>();
-			S = new Vector<Integer>();
 			System.out.println("DEBUG: File reading...");
 			while ((line = br.readLine()) != null) {
 				String tokens[] = line.split(" ");
@@ -100,10 +99,6 @@ public class PageRanker {
 				tokens = null;
 			}
 			System.out.println("DEBUG: Graph size = " + graph.size());
-			for (Node node : graph.values()) {
-				if (node.isSink())
-					S.add(node.pid);
-			}
 			br.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -119,6 +114,11 @@ public class PageRanker {
 		double iN = 1.0 / graph.size();
 		for (Integer pid : graph.keySet())
 			PR.put(pid, iN);
+		S = new Vector<Integer>();
+		for (Node node : graph.values()) {
+			if (node.isSink())
+				S.add(node.pid);
+		}
 	}
 
 	/**
@@ -212,15 +212,14 @@ public class PageRanker {
 	 * Return the top K page IDs, whose scores are highest.
 	 */
 	public Integer[] getRankedPages(int K) {
-		Integer[] rankedPages = new Integer[K];
 		List<Integer> pages = new Vector<Integer>(graph.keySet());
 		Collections.sort(pages, new Comparator<Integer>() {
 			@Override
 			public int compare(Integer p1, Integer p2) {
-				return (int) (PR.get(p2) - PR.get(p1));
+				return (int) Math.signum(PR.get(p2) - PR.get(p1));
 			}
 		});
-		return pages.subList(0, K).toArray(rankedPages);
+		return pages.subList(0, K).toArray(new Integer[K]);
 	}
 
 	public static void main(String args[]) {
