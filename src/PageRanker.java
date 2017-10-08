@@ -60,7 +60,7 @@ public class PageRanker {
 	private static final double log2 = Math.log(2);
 
 	private Map<Integer, Node> graph;
-	private List<Integer> S;
+	private Vector<Integer> S;
 	private Map<Integer, Double> PR;
 	private int prevUnit;
 	private int iteration;
@@ -111,14 +111,14 @@ public class PageRanker {
 	 */
 	public void initialize() {
 		PR = new HashMap<Integer, Double>(graph.size());
-		double iN = 1.0 / graph.size();
-		for (Integer pid : graph.keySet())
-			PR.put(pid, iN);
 		S = new Vector<Integer>();
+		double iN = 1.0 / graph.size();
 		for (Node node : graph.values()) {
+			PR.put(node.pid, iN);
 			if (node.isSink())
 				S.add(node.pid);
 		}
+		S.trimToSize();
 	}
 
 	/**
@@ -128,8 +128,8 @@ public class PageRanker {
 	public double getPerplexity() {
 		double order = 0;
 		for (Integer pid : graph.keySet())
-			order += PR.get(pid) * Math.log(PR.get(pid));
-		return Math.pow(2, -order / log2);
+			order += PR.get(pid) * Math.log(PR.get(pid)) / log2;
+		return Math.pow(2, -order);
 	}
 
 	/**
