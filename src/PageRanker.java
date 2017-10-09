@@ -56,6 +56,8 @@ public class PageRanker {
 		}
 	}
 
+	private static final boolean debug = true;
+
 	private static final double d = 0.85;
 	private static final double log2 = Math.log(2);
 
@@ -83,7 +85,8 @@ public class PageRanker {
 			String line;
 			Integer pid;
 			graph = new TreeMap<Integer, Node>();
-			System.out.println("DEBUG: File reading...");
+			if (debug)
+				System.out.println("DEBUG: File reading...");
 			while ((line = br.readLine()) != null) {
 				String tokens[] = line.split(" ");
 				Node node = graph.get(pid = Integer.parseInt(tokens[0]));
@@ -98,7 +101,8 @@ public class PageRanker {
 				}
 				tokens = null;
 			}
-			System.out.println("DEBUG: Graph size = " + graph.size());
+			if (debug)
+				System.out.println("DEBUG: Graph size = " + graph.size());
 			br.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -141,8 +145,10 @@ public class PageRanker {
 		perplexityBuilder.append(perplexity);
 		perplexityBuilder.append("\n");
 		int unit = (int) perplexity;
-		System.out.println("DEBUG: Perplexity = " + perplexity);
-		// System.out.println("DEBUG: Iteration = " + iteration);
+		if (debug) {
+			System.out.println("DEBUG: Perplexity = " + perplexity);
+			System.out.println("DEBUG: Iteration = " + iteration);
+		}
 		if (unit == prevUnit && ++iteration == 4)
 			return true;
 		if (unit != prevUnit)
@@ -178,7 +184,8 @@ public class PageRanker {
 		perplexityBuilder = new StringBuilder();
 		scoreBuilder = new StringBuilder();
 		do {
-			System.out.println("DEBUG: Converging...");
+			if (debug)
+				System.out.println("DEBUG: Converging...");
 			sinkPR = 0;
 			for (Integer pid : S)
 				sinkPR += PR.get(pid);
