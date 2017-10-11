@@ -177,7 +177,7 @@ public class PageRanker {
 	 * 
 	 */
 	public void runPageRank(String perplexityOutFilename, String prOutFilename) {
-		double sinkPR, newPRVal, newPRVal2, newPRVal3;
+		double sinkPR, newPRVal, newPRVal2;
 		Map<Integer, Double> newPR = new HashMap<Integer, Double>(PR.size());
 		int N = graph.size();
 		double dN = (1 - d) / N;
@@ -189,13 +189,12 @@ public class PageRanker {
 			sinkPR = 0;
 			for (Integer pid : S)
 				sinkPR += PR.get(pid);
-			newPRVal2 = dN + (d * sinkPR / N);
+			newPRVal = dN + (d * sinkPR / N);
 			for (Node p : graph.values()) {
-				newPRVal = newPRVal2;
-				newPRVal3 = 0;
+				newPRVal2 = 0;
 				for (Node q : p.getIn())
-					newPRVal3 += PR.get(q.pid) / q.getOut().size();
-				newPR.put(p.pid, newPRVal + d * newPRVal3);
+					newPRVal2 += PR.get(q.pid) / q.getOut().size();
+				newPR.put(p.pid, newPRVal + d * newPRVal2);
 			}
 			PR.putAll(newPR);
 		} while (!isConverge());
