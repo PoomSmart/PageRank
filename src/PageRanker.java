@@ -10,8 +10,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.Vector;
 
 /**
@@ -66,6 +66,7 @@ public class PageRanker {
 	private Map<Integer, Double> PR;
 	private int prevUnit;
 	private int iteration;
+	private double perplexity;
 
 	private BufferedWriter perplexityWriter;
 	private BufferedWriter scoreWriter;
@@ -84,7 +85,7 @@ public class PageRanker {
 			BufferedReader br = new BufferedReader(new FileReader(inputLinkFilename));
 			String line;
 			Integer pid;
-			graph = new TreeMap<Integer, Node>();
+			graph = new HashMap<Integer, Node>();
 			if (debug)
 				System.out.println("DEBUG: File reading...");
 			while ((line = br.readLine()) != null) {
@@ -130,10 +131,7 @@ public class PageRanker {
 	 * specs.
 	 */
 	public double getPerplexity() {
-		double pr, order = 0;
-		for (Integer pid : graph.keySet())
-			order += (pr = PR.get(pid)) * Math.log(pr) / log2;
-		return Math.pow(2, -order);
+		return perplexity;
 	}
 
 	/**
@@ -181,6 +179,7 @@ public class PageRanker {
 		Map<Integer, Double> newPR = new HashMap<Integer, Double>(PR.size());
 		int N = graph.size();
 		double dN = (1 - d) / N;
+		double order, value;
 		perplexityBuilder = new StringBuilder();
 		scoreBuilder = new StringBuilder();
 		do {
@@ -196,7 +195,13 @@ public class PageRanker {
 					newPRVal2 += PR.get(q.pid) / q.getOut().size();
 				newPR.put(p.pid, newPRVal + d * newPRVal2);
 			}
-			PR.putAll(newPR);
+			order = 0;
+			for (Entry<Integer, Double> entry : newPR.entrySet()) {
+				value = entry.getValue();
+				order += value * Math.log(value) / log2;
+				PR.put(entry.getKey(), value);
+			}
+			perplexity = Math.pow(2, -order);
 		} while (!isConverge());
 		try {
 			perplexityWriter = new BufferedWriter(new FileWriter(perplexityOutFilename));
