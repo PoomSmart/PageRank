@@ -44,7 +44,7 @@ public class PageRanker {
 		}
 	}
 
-	private static final boolean debug = true;
+	private static final boolean debug = false;
 
 	private static final double d = 0.85;
 	private static final double log2 = Math.log(2);
@@ -114,7 +114,7 @@ public class PageRanker {
 	public void initialize() {
 		PR = new HashMap<Integer, Double>(graph.size());
 		S = new Vector<Integer>();
-		double iN = 1.0 / graph.size();
+		Double iN = 1.0 / graph.size();
 		for (Node node : graph.values()) {
 			PR.put(node.pid, iN);
 			if (node.isSink())
@@ -175,8 +175,8 @@ public class PageRanker {
 		double sinkPR, newPRVal, newPRVal2;
 		Map<Integer, Double> newPR = new HashMap<Integer, Double>(PR.size());
 		int N = graph.size();
-		double dN = (1 - d) / N;
-		double order, value;
+		Double dN = (1 - d) / N;
+		Double order, value;
 		perplexityBuilder = new StringBuilder();
 		scoreBuilder = new StringBuilder();
 		do {
@@ -192,7 +192,7 @@ public class PageRanker {
 					newPRVal2 += PR.get(q.pid) / q.out.size();
 				newPR.put(p.pid, newPRVal + d * newPRVal2);
 			}
-			order = 0;
+			order = 0.0;
 			for (Entry<Integer, Double> entry : newPR.entrySet()) {
 				value = entry.getValue();
 				order += value * Math.log(value) / log2;
@@ -205,10 +205,10 @@ public class PageRanker {
 			perplexityWriter.write(perplexityBuilder.toString());
 			perplexityWriter.close();
 			scoreWriter = new BufferedWriter(new FileWriter(prOutFilename));
-			for (Integer p : graph.keySet()) {
-				scoreBuilder.append(p);
+			for (Entry<Integer, Double> entry : PR.entrySet()) {
+				scoreBuilder.append(entry.getKey());
 				scoreBuilder.append(" ");
-				scoreBuilder.append(PR.get(p));
+				scoreBuilder.append(entry.getValue());
 				scoreBuilder.append("\n");
 			}
 			scoreWriter.write(scoreBuilder.toString());
