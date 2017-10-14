@@ -21,26 +21,14 @@ import java.util.Vector;
 public class PageRanker {
 
 	class Node {
-		private int pid;
-		private Set<Node> in;
-		private Set<Node> out;
+		public Integer pid;
+		public Set<Node> in;
+		public Set<Node> out;
 
-		public Node(int id) {
+		public Node(Integer id) {
 			pid = id;
 			in = new HashSet<Node>();
 			out = new HashSet<Node>();
-		}
-
-		public int getPid() {
-			return pid;
-		}
-
-		public Set<Node> getIn() {
-			return in;
-		}
-
-		public Set<Node> getOut() {
-			return out;
 		}
 
 		public void addIn(Node in) {
@@ -90,11 +78,11 @@ public class PageRanker {
 				System.out.println("DEBUG: File reading...");
 			while ((line = br.readLine()) != null) {
 				String tokens[] = line.split(" ");
-				Node node = graph.get(pid = Integer.parseInt(tokens[0]));
+				Node node = graph.get(pid = parseInt(tokens[0]));
 				if (node == null)
 					graph.put(pid, node = new Node(pid));
 				for (int i = 1; i < tokens.length; i++) {
-					Node inNode = graph.get(pid = Integer.parseInt(tokens[i]));
+					Node inNode = graph.get(pid = parseInt(tokens[i]));
 					if (inNode == null)
 						graph.put(pid, inNode = new Node(pid));
 					inNode.addOut(node);
@@ -108,6 +96,15 @@ public class PageRanker {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public static int parseInt(final String s) {
+		final int len = s.length();
+		int num = '0' - s.charAt(0);
+		int i = 1;
+		while (i < len)
+			num = num * 10 + '0' - s.charAt(i++);
+		return -num;
 	}
 
 	/**
@@ -191,8 +188,8 @@ public class PageRanker {
 			newPRVal = dN + (d * sinkPR / N);
 			for (Node p : graph.values()) {
 				newPRVal2 = 0;
-				for (Node q : p.getIn())
-					newPRVal2 += PR.get(q.pid) / q.getOut().size();
+				for (Node q : p.in)
+					newPRVal2 += PR.get(q.pid) / q.out.size();
 				newPR.put(p.pid, newPRVal + d * newPRVal2);
 			}
 			order = 0;
@@ -229,7 +226,7 @@ public class PageRanker {
 		Collections.sort(pages, new Comparator<Integer>() {
 			@Override
 			public int compare(Integer p1, Integer p2) {
-				return (int) Math.signum(PR.get(p2) - PR.get(p1));
+				return PR.get(p2).compareTo(PR.get(p1));
 			}
 		});
 		return pages.subList(0, K).toArray(new Integer[K]);
