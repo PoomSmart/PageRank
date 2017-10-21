@@ -188,10 +188,14 @@ public class PageRanker {
 				sinkPR += PR.get(pid);
 			newPRVal = dN + (d * sinkPR / N);
 			for (Node p : graph.values()) {
-				newPRVal2 = 0;
-				for (Node q : p.in)
-					newPRVal2 += PR.get(q.pid) / q.out.size();
-				newPR.put(p.pid, newPRVal + d * newPRVal2);
+				if (p.in.isEmpty())
+					newPR.put(p.pid, newPRVal);
+				else {
+					newPRVal2 = 0;
+					for (Node q : p.in)
+						newPRVal2 += PR.get(q.pid) / q.out.size();
+					newPR.put(p.pid, newPRVal + d * newPRVal2);
+				}
 			}
 			order = 0.0;
 			for (Entry<Integer, Double> entry : newPR.entrySet()) {
