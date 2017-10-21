@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.Vector;
 
 /**
@@ -73,22 +74,22 @@ public class PageRanker {
 			BufferedReader br = new BufferedReader(new FileReader(inputLinkFilename));
 			String line;
 			Integer pid;
+			StringTokenizer token;
 			graph = new HashMap<Integer, Node>();
 			if (debug)
 				System.out.println("DEBUG: File reading...");
 			while ((line = br.readLine()) != null) {
-				String tokens[] = line.split(" ");
-				Node node = graph.get(pid = parseInt(tokens[0]));
+				token = new StringTokenizer(line, " ");
+				Node node = graph.get(pid = parseInt(token.nextToken()));
 				if (node == null)
 					graph.put(pid, node = new Node(pid));
-				for (int i = 1; i < tokens.length; i++) {
-					Node inNode = graph.get(pid = parseInt(tokens[i]));
+				while (token.hasMoreTokens()) {
+					Node inNode = graph.get(pid = parseInt(token.nextToken()));
 					if (inNode == null)
 						graph.put(pid, inNode = new Node(pid));
 					inNode.addOut(node);
 					node.addIn(inNode);
 				}
-				tokens = null;
 			}
 			if (debug)
 				System.out.println("DEBUG: Graph size = " + graph.size());
@@ -98,9 +99,9 @@ public class PageRanker {
 		}
 	}
 
-	public static int parseInt(final String s) {
+	public static Integer parseInt(final String s) {
 		final int len = s.length();
-		int num = '0' - s.charAt(0);
+		Integer num = '0' - s.charAt(0);
 		int i = 1;
 		while (i < len)
 			num = num * 10 + '0' - s.charAt(i++);
