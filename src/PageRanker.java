@@ -25,6 +25,7 @@ public class PageRanker {
 		public Integer pid;
 		public Set<Node> in;
 		public Set<Node> out;
+		public double iOutSize;
 
 		public Node(Integer id) {
 			pid = id;
@@ -121,6 +122,8 @@ public class PageRanker {
 			PR.put(node.pid, iN);
 			if (node.isSink())
 				S.add(node.pid);
+			else
+				node.iOutSize = 1.0 / node.out.size();
 		}
 		S.trimToSize();
 	}
@@ -194,7 +197,7 @@ public class PageRanker {
 				else {
 					newPRVal2 = 0;
 					for (Node q : p.in)
-						newPRVal2 += PR.get(q.pid) / q.out.size();
+						newPRVal2 += PR.get(q.pid) * q.iOutSize;
 					newPR.put(p.pid, newPRVal + d * newPRVal2);
 				}
 			}
