@@ -48,7 +48,7 @@ public class PageRanker {
 	private static final boolean debug = false;
 
 	private static final double d = 0.85;
-	private static final double log2 = Math.log(2);
+	private static final double ilog2 = 1.0 / Math.log(2);
 
 	private Map<Integer, Node> graph;
 	private Vector<Integer> S;
@@ -200,7 +200,7 @@ public class PageRanker {
 			order = 0.0;
 			for (Entry<Integer, Double> entry : newPR.entrySet()) {
 				value = entry.getValue();
-				order += value * Math.log(value) / log2;
+				order += value * Math.log(value) * ilog2;
 				PR.put(entry.getKey(), value);
 			}
 			perplexity = Math.pow(2, -order);
