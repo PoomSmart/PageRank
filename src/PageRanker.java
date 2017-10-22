@@ -56,6 +56,7 @@ public class PageRanker {
 	private int prevUnit;
 	private int iteration;
 	private double perplexity;
+	private Double iN;
 
 	private BufferedWriter perplexityWriter;
 	private BufferedWriter scoreWriter;
@@ -115,7 +116,7 @@ public class PageRanker {
 	public void initialize() {
 		PR = new HashMap<Integer, Double>(graph.size());
 		S = new Vector<Integer>();
-		Double iN = 1.0 / graph.size();
+		iN = 1.0 / graph.size();
 		for (Node node : graph.values()) {
 			PR.put(node.pid, iN);
 			if (node.isSink())
@@ -175,8 +176,8 @@ public class PageRanker {
 	public void runPageRank(String perplexityOutFilename, String prOutFilename) {
 		double sinkPR, newPRVal, newPRVal2;
 		Map<Integer, Double> newPR = new HashMap<Integer, Double>(PR.size());
-		int N = graph.size();
-		Double dN = (1 - d) / N;
+		double dN = d * iN;
+		Double idN = iN - dN;
 		Double order, value;
 		perplexityBuilder = new StringBuilder();
 		scoreBuilder = new StringBuilder();
@@ -186,7 +187,7 @@ public class PageRanker {
 			sinkPR = 0;
 			for (Integer pid : S)
 				sinkPR += PR.get(pid);
-			newPRVal = dN + (d * sinkPR / N);
+			newPRVal = idN + sinkPR * dN;
 			for (Node p : graph.values()) {
 				if (p.in.isEmpty())
 					newPR.put(p.pid, newPRVal);
