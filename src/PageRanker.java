@@ -180,7 +180,7 @@ public class PageRanker {
 		double sinkPR, newPRVal, newPRVal2;
 		Map<Integer, Double> newPR = new HashMap<Integer, Double>(PR.size());
 		double dN = d * iN;
-		Double idN = iN - dN;
+		double idN = iN - dN;
 		Double order, value;
 		perplexityBuilder = new StringBuilder();
 		scoreBuilder = new StringBuilder();
