@@ -187,7 +187,7 @@ public class PageRanker {
 		do {
 			if (debug)
 				System.out.println("DEBUG: Converging...");
-			sinkPR = 0;
+			sinkPR = 0.0;
 			for (Integer pid : S)
 				sinkPR += PR.get(pid);
 			newPRVal = idN + sinkPR * dN;
@@ -195,7 +195,7 @@ public class PageRanker {
 				if (p.in.isEmpty())
 					newPR.put(p.pid, newPRVal);
 				else {
-					newPRVal2 = 0;
+					newPRVal2 = 0.0;
 					for (Node q : p.in)
 						newPRVal2 += PR.get(q.pid) * q.iOutSize;
 					newPR.put(p.pid, newPRVal + d * newPRVal2);
@@ -238,7 +238,9 @@ public class PageRanker {
 				return PR.get(p2).compareTo(PR.get(p1));
 			}
 		});
-		return pages.subList(0, K).toArray(new Integer[K]);
+		if (pages.size() > K)
+			pages = pages.subList(0, K);
+		return pages.toArray(new Integer[Math.min(K, pages.size())]);
 	}
 
 	public static void main(String args[]) {
