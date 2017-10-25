@@ -153,8 +153,7 @@ public class PageRanker {
 		S = new Vector<Node>();
 		iN = 1.0 / graph.size();
 		for (Node node : graph.values()) {
-			//PR.put(node.pid, iN); // Initial score for each page: 1/N
-			node.score = iN;
+			node.score = iN; // Initial score for each page: 1/N
 			if (node.isSink())
 				S.add(node); // Add sink pages here
 			else
@@ -240,7 +239,7 @@ public class PageRanker {
 				order += p.newScore * Math.log(p.newScore) * ilog2;
 			}
 			for (Node p : graph.values())
-				p.score = p.newScore;
+				p.score = p.newScore; // Update "PR" from "newPR"
 			// TODO: Alternatively, the faster exp(-order) (hence ignoring ilog2) may be used, but precision may
 			// oscillate in a worse way
 			perplexity = Math.pow(2, -order);
@@ -251,6 +250,7 @@ public class PageRanker {
 			perplexityWriter.write(perplexityBuilder.toString());
 			perplexityWriter.close();
 			scoreWriter = new BufferedWriter(new FileWriter(prOutFilename));
+			// Sort the pages before writing out their PR score
 			Vector<Node> nodes = new Vector<Node>(graph.values());
 			Collections.sort(nodes);
 			for (Node node : nodes) {
