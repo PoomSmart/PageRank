@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -37,7 +36,7 @@ public class PageRanker {
 	 * those links are determined to be sets because it efficiently solves duplication issue.
 	 * 
 	 */
-	class Node {
+	class Node implements Comparable<Node> {
 		public Integer pid;
 		public Set<Node> in;
 		public Set<Node> out;
@@ -62,6 +61,10 @@ public class PageRanker {
 		public boolean isSink() {
 			// By definition of a sink page whose out-links are none
 			return out.isEmpty();
+		}
+		
+		public int compareTo(Node n) {
+			return pid.compareTo(n.pid);
 		}
 	}
 
@@ -248,8 +251,9 @@ public class PageRanker {
 			perplexityWriter.write(perplexityBuilder.toString());
 			perplexityWriter.close();
 			scoreWriter = new BufferedWriter(new FileWriter(prOutFilename));
-			// TODO: graph should be sorted by key first?
-			for (Node node : graph.values()) {
+			Vector<Node> nodes = new Vector<Node>(graph.values());
+			Collections.sort(nodes);
+			for (Node node : nodes) {
 				scoreBuilder.append(node.pid);
 				scoreBuilder.append(" ");
 				scoreBuilder.append(node.score);
