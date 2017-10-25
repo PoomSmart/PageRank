@@ -41,6 +41,8 @@ public class PageRanker {
 		public Integer pid;
 		public Set<Node> in;
 		public Set<Node> out;
+		public Double score;
+		public Double newScore;
 		public double iOutSize;
 
 		public Node(Integer id) {
@@ -71,9 +73,7 @@ public class PageRanker {
 	// Data structure to store all pages associated with their page number
 	private Map<Integer, Node> graph;
 	// Data structure to store all sink pages
-	private Vector<Integer> S;
-	// Data structure to store PageRank scores of all pages
-	private Map<Integer, Double> PR;
+	private Vector<Node> S;
 	// Integer to store floor of previous perplexity value
 	private int prevUnit;
 	// Integer to store iterations of "similar" perplexity value
@@ -147,13 +147,13 @@ public class PageRanker {
 	 */
 	public void initialize() {
 		// General variables initialization
-		PR = new HashMap<Integer, Double>(graph.size());
-		S = new Vector<Integer>();
+		S = new Vector<Node>();
 		iN = 1.0 / graph.size();
 		for (Node node : graph.values()) {
-			PR.put(node.pid, iN); // Initial score for each page: 1/N
+			//PR.put(node.pid, iN); // Initial score for each page: 1/N
+			node.score = iN;
 			if (node.isSink())
-				S.add(node.pid); // Add sink pages here
+				S.add(node); // Add sink pages here
 			else
 				node.iOutSize = 1.0 / node.out.size(); // Store 1/L(q) (from pseudocode) for faster calculation
 		}
@@ -212,35 +212,32 @@ public class PageRanker {
 		// Perform the given pseudocode, with a number of optimizations to reduce as many as possible computation
 		// operations
 		double sinkPR, newPRVal, newPRVal2;
-		Map<Integer, Double> newPR = new HashMap<Integer, Double>(PR.size());
 		double dN = d * iN;
 		double idN = iN - dN;
-		Double order, value;
+		Double order;
 		perplexityBuilder = new StringBuilder();
 		scoreBuilder = new StringBuilder();
 		do {
 			sinkPR = 0.0;
-			for (Integer pid : S)
-				sinkPR += PR.get(pid);
+			for (Node node : S)
+				sinkPR += node.score;
 			newPRVal = idN + sinkPR * dN; // This value is a starting for every page, calculated once
+			order = 0.0;
 			for (Node p : graph.values()) {
 				if (p.in.isEmpty())
-					newPR.put(p.pid, newPRVal); // newPRVal2 is 0, don't even need to include here
+					p.newScore = newPRVal; // newPRVal2 is 0, don't even need to include here
 				else {
 					newPRVal2 = 0.0; // This value is later multiplied by d
 					for (Node q : p.in)
 						// Performance: Multiplication with 1/L(q) > Division with L(q)
-						newPRVal2 += PR.get(q.pid) * q.iOutSize;
-					newPR.put(p.pid, newPRVal + d * newPRVal2);
+						newPRVal2 += q.score * q.iOutSize;
+					p.newScore = newPRVal + d * newPRVal2;
 				}
-			}
-			order = 0.0;
-			for (Entry<Integer, Double> entry : newPR.entrySet()) {
-				value = entry.getValue();
 				// Computing log base 2, but multiplication of log2 inverse for better performance
-				order += value * Math.log(value) * ilog2;
-				PR.put(entry.getKey(), value);
+				order += p.newScore * Math.log(p.newScore) * ilog2;
 			}
+			for (Node p : graph.values())
+				p.score = p.newScore;
 			// TODO: Alternatively, the faster exp(-order) (hence ignoring ilog2) may be used, but precision may
 			// oscillate in a worse way
 			perplexity = Math.pow(2, -order);
@@ -251,10 +248,11 @@ public class PageRanker {
 			perplexityWriter.write(perplexityBuilder.toString());
 			perplexityWriter.close();
 			scoreWriter = new BufferedWriter(new FileWriter(prOutFilename));
-			for (Entry<Integer, Double> entry : PR.entrySet()) {
-				scoreBuilder.append(entry.getKey());
+			// TODO: graph should be sorted by key first?
+			for (Node node : graph.values()) {
+				scoreBuilder.append(node.pid);
 				scoreBuilder.append(" ");
-				scoreBuilder.append(entry.getValue());
+				scoreBuilder.append(node.score);
 				scoreBuilder.append("\n");
 			}
 			scoreWriter.write(scoreBuilder.toString());
@@ -273,7 +271,7 @@ public class PageRanker {
 		Collections.sort(pages, new Comparator<Integer>() {
 			@Override
 			public int compare(Integer p1, Integer p2) {
-				return PR.get(p2).compareTo(PR.get(p1));
+				return graph.get(p2).score.compareTo(graph.get(p1).score);
 			}
 		});
 		// Make sure |output| <= K
