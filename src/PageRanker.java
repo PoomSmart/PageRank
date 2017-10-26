@@ -40,8 +40,8 @@ public class PageRanker {
 		public Integer pid;
 		public Set<Node> in;
 		public Set<Node> out;
-		public Double score;
-		public Double newScore;
+		public double score;
+		public double newScore;
 		public double iOutSize;
 
 		public Node(Integer id) {
@@ -71,7 +71,7 @@ public class PageRanker {
 	// Conventional damping factor
 	private static final double d = 0.85;
 	// Inverse of log2 to save up computation time from time-consuming log2 division
-	private static final double ilog2 = 1.0 / Math.log(2);
+	private static final double ilog2 = 1.0 / Math.log10(2);
 
 	// Data structure to store all pages associated with their page number
 	private Map<Integer, Node> graph;
@@ -213,30 +213,25 @@ public class PageRanker {
 	public void runPageRank(String perplexityOutFilename, String prOutFilename) {
 		// Perform the given pseudocode, with a number of optimizations to reduce as many as possible computation
 		// operations
-		double sinkPR, newPRVal, newPRVal2;
 		double dN = d * iN;
 		double idN = iN - dN;
-		Double order;
+		double order;
 		perplexityBuilder = new StringBuilder();
 		scoreBuilder = new StringBuilder();
 		do {
-			sinkPR = 0.0;
+			double sinkPR = 0.0;
 			for (Node node : S)
 				sinkPR += node.score;
-			newPRVal = idN + sinkPR * dN; // This value is a starting for every page, calculated once
+			double newPRVal = idN + sinkPR * dN; // This value is a starting for every page, calculated once
 			order = 0.0;
 			for (Node p : graph.values()) {
-				if (p.in.isEmpty())
-					p.newScore = newPRVal; // newPRVal2 is 0, don't even need to include here
-				else {
-					newPRVal2 = 0.0; // This value is later multiplied by d
-					for (Node q : p.in)
-						// Performance: Multiplication with 1/L(q) > Division with L(q)
-						newPRVal2 += q.score * q.iOutSize;
-					p.newScore = newPRVal + d * newPRVal2;
-				}
+				p.newScore = 0.0;
+				for (Node q : p.in)
+					// Performance: Multiplication with 1/L(q) > Division with L(q)
+					p.newScore += q.score * q.iOutSize;
+				p.newScore = p.in.isEmpty() ? newPRVal : d * p.newScore + newPRVal;
 				// Computing log base 2, but multiplication of log2 inverse for better performance
-				order += p.newScore * Math.log(p.newScore) * ilog2;
+				order += p.newScore * Math.log10(p.newScore) * ilog2;
 			}
 			for (Node p : graph.values())
 				p.score = p.newScore; // Update "PR" from "newPR"
@@ -275,7 +270,7 @@ public class PageRanker {
 		Collections.sort(pages, new Comparator<Integer>() {
 			@Override
 			public int compare(Integer p1, Integer p2) {
-				return graph.get(p2).score.compareTo(graph.get(p1).score);
+				return (int)Math.signum(graph.get(p2).score - graph.get(p1).score);
 			}
 		});
 		// Make sure |output| <= K

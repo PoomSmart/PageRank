@@ -65,3 +65,4 @@ $RECYCLE.BIN/
 
 *.out
 src/PageRanker2.java
+/bin/
