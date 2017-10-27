@@ -13,14 +13,14 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -33,21 +33,21 @@ public class PageRanker {
 	/*
 	 * To simplify our data structure, we chose Node as a direct graph representation that coordinates better
 	 * relationship between nodes (or pages). Specifying in-links and out-links are therefore simple. Data structure for
-	 * those links are determined to be sets because it efficiently solves duplication issue.
+	 * those links are determined to be lists instead of sets according to the experiment.
 	 * 
 	 */
 	class Node implements Comparable<Node> {
 		public Integer pid;
-		public Set<Node> in;
-		public Set<Node> out;
+		public List<Node> in;
+		public List<Node> out;
 		public double score;
 		public double newScore;
 		public double iOutSize;
 
 		public Node(Integer id) {
 			pid = id;
-			in = new HashSet<Node>();
-			out = new HashSet<Node>();
+			in = new ArrayList<Node>();
+			out = new ArrayList<Node>();
 		}
 
 		public void addIn(Node in) {
@@ -88,9 +88,8 @@ public class PageRanker {
 
 	// Writers and string builders for output files
 	private BufferedWriter perplexityWriter;
-	private BufferedWriter scoreWriter;
+	private PrintWriter scoreWriter;
 	private StringBuilder perplexityBuilder;
-	private StringBuilder scoreBuilder;
 
 	/**
 	 * This class reads the direct graph stored in the file "inputLinkFilename" into memory. Each line in the input file
@@ -118,9 +117,11 @@ public class PageRanker {
 					if (inNode == null)
 						graph.put(pid, inNode = new Node(pid));
 					// Out-page of all in-pages is the first page in the line
-					inNode.addOut(node);
+					if (!inNode.out.contains(node))
+						inNode.addOut(node);
 					// Link in-pages to the first page in the line
-					node.addIn(inNode);
+					if (!node.in.contains(inNode))
+						node.addIn(inNode);
 				}
 			}
 			br.close();
@@ -217,7 +218,6 @@ public class PageRanker {
 		double idN = iN - dN;
 		double order;
 		perplexityBuilder = new StringBuilder();
-		scoreBuilder = new StringBuilder();
 		do {
 			double sinkPR = 0.0;
 			for (Node node : S)
@@ -244,17 +244,16 @@ public class PageRanker {
 			perplexityWriter = new BufferedWriter(new FileWriter(perplexityOutFilename));
 			perplexityWriter.write(perplexityBuilder.toString());
 			perplexityWriter.close();
-			scoreWriter = new BufferedWriter(new FileWriter(prOutFilename));
+			scoreWriter = new PrintWriter(prOutFilename);
 			// Sort the pages before writing out their PR score
 			Vector<Node> nodes = new Vector<Node>(graph.values());
 			Collections.sort(nodes);
 			for (Node node : nodes) {
-				scoreBuilder.append(node.pid);
-				scoreBuilder.append(" ");
-				scoreBuilder.append(node.score);
-				scoreBuilder.append("\n");
+				scoreWriter.print(node.pid);
+				scoreWriter.print(" ");
+				scoreWriter.print(node.score);
+				scoreWriter.println();
 			}
-			scoreWriter.write(scoreBuilder.toString());
 			scoreWriter.close();
 		} catch (IOException e) {
 			e.printStackTrace();
